@@ -45,11 +45,11 @@ jobs:
             libssl-dev \
             imagemagick
 
-      - name: generate valid PNG icon
+      - name: generate RGBA PNG icon
         run: |
           mkdir -p src-tauri/icons
-          convert -size 256x256 xc:"#1E90FF" PNG:src-tauri/icons/icon.png
-          file src-tauri/icons/icon.png
+          convert -size 256x256 xc:"#1E90FF" -alpha on -define png:color-type=6 PNG32:src-tauri/icons/icon.png
+          identify -verbose src-tauri/icons/icon.png | grep -E "Type|Colorspace|Alpha"
 
       - name: install frontend dependencies
         run: npm install
