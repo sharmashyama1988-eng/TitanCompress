@@ -5,9 +5,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ─────────────────────────────────────────────
-  # JOB 1: Windows .exe
-  # ─────────────────────────────────────────────
   build-windows:
     permissions:
       contents: write
@@ -32,6 +29,20 @@ jobs:
       - name: build frontend
         run: npm run build
 
+      - name: generate icon.ico from PNG
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $src = [System.Drawing.Image]::FromFile("src-tauri/icons/icon.png")
+          $ico = New-Object System.Drawing.Icon($src.GetThumbnailImage(32,32,$null,[System.IntPtr]::Zero))
+          # Use magick if available, else copy png as placeholder
+          if (Get-Command magick -ErrorAction SilentlyContinue) {
+            magick src-tauri/icons/icon.png -resize 256x256 src-tauri/icons/icon.ico
+          } else {
+            # tauri-build accepts png when no .ico is explicitly required in bundle.icon
+            Write-Host "ImageMagick not found, skipping ICO generation"
+          }
+
       - name: generate windows certificate
         shell: pwsh
         run: |
@@ -54,9 +65,6 @@ jobs:
           releaseDraft: true
           prerelease: false
 
-  # ─────────────────────────────────────────────
-  # JOB 2: Android .apk
-  # ─────────────────────────────────────────────
   build-android:
     permissions:
       contents: write
@@ -89,7 +97,7 @@ jobs:
       - name: install NDK
         run: sdkmanager "ndk;27.0.12077973"
 
-      - name: install dependencies
+      - name: install linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -121,8 +129,9 @@ jobs:
           TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ env.TITAN_KEYSTORE_PASSWORD }}
           TAURI_ANDROID_KEY_ALIAS: titan-alias
           TAURI_ANDROID_KEY_PASSWORD: "titan123"
+          NDK_HOME: ${{ env.ANDROID_NDK_ROOT }}
 
-      - name: upload APK artifact
+      - name: upload APK
         uses: actions/upload-artifact@v4
         with:
           name: titan-compressor-android
