@@ -2,7 +2,6 @@
   "name": "titan-compress",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,7 +9,7 @@
     "tauri": "tauri"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0-rc",
+    "@tauri-apps/cli": "^2",
     "vite": "^5.0.0"
   }
 }
