@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm'
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -69,7 +68,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: "" # Optional for update signing
           WINDOWS_PFX: ${{ env.WINDOWS_CERTIFICATE_PATH }}
           WINDOWS_PFX_PASSWORD: ${{ env.WINDOWS_CERTIFICATE_PASSWORD }}
         with:
