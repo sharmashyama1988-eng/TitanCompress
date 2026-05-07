@@ -51,6 +51,16 @@ jobs:
           convert -size 256x256 xc:"#1E90FF" -alpha on -define png:color-type=6 PNG32:src-tauri/icons/icon.png
           identify -verbose src-tauri/icons/icon.png | grep -E "Type|Colorspace|Alpha"
 
+      - name: generate android keystore
+        run: |
+          keytool -genkey -v \
+            -keystore ${{ github.workspace }}/release.keystore \
+            -alias titan-alias \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass titan123 -keypass titan123 \
+            -dname "CN=Titan,OU=Compressor,O=TitanEngines,L=Delhi,ST=Delhi,C=IN"
+          echo "KEYSTORE_PATH=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
+
       - name: install frontend dependencies
         run: npm install
 
@@ -60,29 +70,39 @@ jobs:
       - name: init Tauri Android
         run: npm run tauri android init
 
-      - name: generate android keystore
-        run: |
-          keytool -genkey -v \
-            -keystore release.keystore \
-            -alias titan-alias \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass titan123 -keypass titan123 \
-            -dname "CN=Titan,OU=Compressor,O=TitanEngines,L=Delhi,ST=Delhi,C=IN"
-          echo "TITAN_KEYSTORE_PATH=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
-          echo "TITAN_KEYSTORE_PASSWORD=titan123" >> $GITHUB_ENV
-
-      - name: build android APK
+      - name: build android APK (unsigned)
         run: npm run tauri android build -- --apk
         env:
-          TAURI_ANDROID_KEYSTORE_PATH: ${{ env.TITAN_KEYSTORE_PATH }}
-          TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ env.TITAN_KEYSTORE_PASSWORD }}
-          TAURI_ANDROID_KEY_ALIAS: titan-alias
-          TAURI_ANDROID_KEY_PASSWORD: titan123
           NDK_HOME: ${{ env.ANDROID_NDK_ROOT }}
 
-      - name: upload APK
+      - name: sign APK with apksigner
+        run: |
+          BUILD_TOOLS="${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | sort -V | tail -1)"
+          echo "Using build-tools: $BUILD_TOOLS"
+
+          # Find the built APK
+          UNSIGNED_APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
+          echo "Found APK: $UNSIGNED_APK"
+
+          # Step 1: zipalign (required before signing)
+          ${BUILD_TOOLS}/zipalign -f -v 4 "$UNSIGNED_APK" app-aligned.apk
+
+          # Step 2: Sign with apksigner
+          ${BUILD_TOOLS}/apksigner sign \
+            --ks ${{ env.KEYSTORE_PATH }} \
+            --ks-key-alias titan-alias \
+            --ks-pass pass:titan123 \
+            --key-pass pass:titan123 \
+            --out titan-compress-signed.apk \
+            app-aligned.apk
+
+          # Step 3: Verify signature
+          ${BUILD_TOOLS}/apksigner verify --verbose titan-compress-signed.apk
+          echo "✅ APK signed successfully"
+
+      - name: upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: titan-compressor-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-          if-no-files-found: warn
+          name: titan-compressor-signed-apk
+          path: titan-compress-signed.apk
+          if-no-files-found: error
