@@ -30,6 +30,9 @@
       "icons/icon.png"
     ],
     "shortDescription": "Titan Compressor",
-    "longDescription": "SOTA Compression Engine with Transparent Random Access"
+    "longDescription": "SOTA Compression Engine with Transparent Random Access",
+    "windows": {
+      "wix": {}
+    }
   }
 }
