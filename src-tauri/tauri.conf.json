@@ -1,63 +1,35 @@
 {
+  "productName": "titan-compress",
+  "version": "1.0.0",
+  "identifier": "com.titan.compress",
   "build": {
-    "beforeBuildCommand": "",
-    "beforeDevCommand": "",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "binaryName": "titan-compress",
-    "version": "1.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": true,
-      "fs": {
-        "all": true,
-        "scope": ["$HOME/**", "$DESKTOP/**", "$DOCUMENT/**", "$DOWNLOAD/**"]
-      },
-      "path": {
-        "all": true
-      },
-      "notification": {
-        "all": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "category": "Utility",
-      "copyright": "Titan Engines",
-      "externalBin": [],
-      "icon": [
-        "icons/icon.png"
-      ],
-      "identifier": "com.titan.compress",
-      "longDescription": "SOTA Compression Engine with Transparent Random Access",
-      "resources": [],
-      "shortDescription": "Titan Compressor",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampServer": ""
-      }
-    },
-    "security": {
-      "csp": null
-    },
-    "updater": {
-      "active": false
-    },
+  "app": {
     "windows": [
       {
-        "fullscreen": false,
-        "height": 700,
-        "resizable": true,
         "title": "Titan Compressor",
         "width": 1000,
-        "transparent": true,
-        "decorations": true
+        "height": 700,
+        "resizable": true,
+        "fullscreen": false
       }
-    ]
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Utility",
+    "copyright": "Titan Engines",
+    "icon": [
+      "icons/icon.png"
+    ],
+    "shortDescription": "Titan Compressor",
+    "longDescription": "SOTA Compression Engine with Transparent Random Access"
   }
 }
