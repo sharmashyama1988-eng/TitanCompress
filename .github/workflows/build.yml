@@ -1,71 +1,10 @@
-name: Build & Sign Titan Compressor
+name: Build Titan Compressor APK
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  # ─────────────────────────────────────────────
-  # JOB 1: Windows .exe
-  # ─────────────────────────────────────────────
-  build-windows:
-    permissions:
-      contents: write
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: generate icons with ImageMagick
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path src-tauri\icons | Out-Null
-          magick -size 256x256 xc:"#1E90FF" src-tauri\icons\icon.png
-          magick src-tauri\icons\icon.png -define icon:auto-resize="256,128,96,64,48,32,16" src-tauri\icons\icon.ico
-          Write-Host "Icons generated OK"
-          Get-Item src-tauri\icons\icon.png, src-tauri\icons\icon.ico | Select-Object Name, Length
-
-      - name: install frontend dependencies
-        run: npm install
-
-      - name: build frontend
-        run: npm run build
-
-      - name: generate windows certificate
-        shell: pwsh
-        run: |
-          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=TitanCompress" `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3") `
-            -KeyUsage DigitalSignature -FriendlyName "TitanCompress" `
-            -CertStoreLocation "Cert:\CurrentUser\My"
-          $password = ConvertTo-SecureString -String "titan123" -Force -AsPlainText
-          Export-PfxCertificate -Cert $cert -FilePath "titan.pfx" -Password $password
-          "WINDOWS_CERTIFICATE_PATH=${{ github.workspace }}\titan.pfx" | Out-File -Append $env:GITHUB_ENV
-          "WINDOWS_CERTIFICATE_PASSWORD=titan123" | Out-File -Append $env:GITHUB_ENV
-
-      - name: build desktop (.exe)
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WINDOWS_PFX: ${{ env.WINDOWS_CERTIFICATE_PATH }}
-          WINDOWS_PFX_PASSWORD: ${{ env.WINDOWS_CERTIFICATE_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: Titan Compressor v__VERSION__
-          releaseBody: SOTA Signed Build for Windows.
-          releaseDraft: true
-          prerelease: false
-
-  # ─────────────────────────────────────────────
-  # JOB 2: Android .apk
-  # ─────────────────────────────────────────────
   build-android:
     permissions:
       contents: write
@@ -106,12 +45,11 @@ jobs:
             libssl-dev \
             imagemagick
 
-      - name: generate icons with ImageMagick
+      - name: generate valid PNG icon
         run: |
           mkdir -p src-tauri/icons
-          convert -size 256x256 xc:"#1E90FF" src-tauri/icons/icon.png
+          convert -size 256x256 xc:"#1E90FF" PNG:src-tauri/icons/icon.png
           file src-tauri/icons/icon.png
-          echo "Icon generated OK"
 
       - name: install frontend dependencies
         run: npm install
@@ -133,7 +71,7 @@ jobs:
           echo "TITAN_KEYSTORE_PATH=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
           echo "TITAN_KEYSTORE_PASSWORD=titan123" >> $GITHUB_ENV
 
-      - name: build android (.apk)
+      - name: build android APK
         run: npm run tauri android build -- --apk
         env:
           TAURI_ANDROID_KEYSTORE_PATH: ${{ env.TITAN_KEYSTORE_PATH }}
@@ -145,5 +83,6 @@ jobs:
       - name: upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: titan-compressor-android
+          name: titan-compressor-apk
           path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
